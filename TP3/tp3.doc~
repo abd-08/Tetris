@@ -1,0 +1,514 @@
+/**
+ *
+ * \page tp3 TP3 - Mini-tetris graphique avec GTK
+ *
+ * \section TP3-intro 1 - Objectifs
+ *
+ * L'objectif de ce TP est de rendre "graphique" votre Tetris "texte"
+ * mis au point lors du TP précédent (\ref tp2).
+ *
+ * On va donc se servir d'une interface graphique classique, appelée
+ * GTK (http://www.gtk.org). Cette interface, écrite en C, mais avec
+ * une philosophie objet, a été écrite pour réaliser le projet GIMP,
+ * qui est une très bonne alternative libre au logiciel de retouche
+ * d'image Photoshop. GTK est aussi à la base de l'environnement
+ * graphique GNOME.
+ * 
+ * On se servira aussi de Cairo (http://www.cairographics.org/) qui
+ * est une bibliothèque très polyvalente pour du dessin vectoriel dans
+ * n'importe quel tampon (image, fichier svg, buffer OpenGL, et
+ * fenêtre). C'est depuis GTK+ 2.8 la façon officielle de faire du
+ * dessin dans les fenêtres.
+ *
+ * \section TP3-compilation-separee 2 - Compilation séparée
+ *
+ * On va réutiliser votre travail de la dernière fois. Pour bien faire
+ * les choses, on va faire des modules distincts. Le premier module
+ * sera la partie logique du Tetris, c'est-à-dire en gros votre
+ * dernier TP. Ce travail sera placé dans le module \c tetris,
+ * constitué du fichier entête \c tetris.h et du fichier source \c
+ * tetris.c. Le deuxième module sera la partie graphique du tetris et
+ * contiendra le programme principal. On créera donc un fichier \c
+ * gtktetris.c.
+ *
+ * \subsection TP3-module-tetris 2.1 - Module tetris
+ *
+ * Vous récupérez votre TP de la dernière fois (version tableau ou
+ * liste, peu importe, du moment qu'elle fonctionne). Vous allez
+ * écrire un fichier \c tetris.h ne contenant que les prototypes des
+ * fonctions que vous avez écrite la dernière fois ainsi que les types
+ * de données.
+ *
+ * \include ./tetris-1.h
+ *
+ * Vous placerez ensuite les fonctions (prototypes et corps) dans un
+ * fichier \c tetris.c. Il faudra aussi enlever la fonction \c main
+ * car un programme C n'a qu'un seul \c main. Une façon élégante de le
+ * faire est de tout simplement renommer votre fonction \c main, par
+ * exemple en \c main_console. Enfin, il faudra inclure le fichier
+ * entête \c tetris.h au début de votre fichier \c tetris.c, juste
+ * après les inclusions d'entêtes systèmes.
+ *
+ \code
+ #include <stdlib.h>
+ #include <stdio.h>
+ #include "tetris.h"
+
+ void genererPieces( Piece tabPiece[ NB_PIECES ] )
+ {
+  .... 
+ }
+ \endcode
+ *
+ *
+ * \subsection TP3-makefile 2.2 - Création d'un makefile
+ *
+ * La commande \c make est un outil classique pour développer et
+ * compiler des programmes, notamment sur les systèmes UNIX. Cette
+ * commande regarde dans le répertoire où elle est lancé la présence
+ * d'un fichier \c Makefile ou \c makefile, et suit les directives
+ * écrites dedans.
+ *
+ * \include makefile-1
+ *
+ * Celui-ci compile simplement le fichier \c tetris.c en son fichier
+ * objet \c tetris.o. On voit que l'on peut définir des variables pour
+ * ensuite les utiliser.
+ *
+ * On rajoute maintenant de quoi compiler notre futur programme \c gtktetris.
+ * Recopier ce mini-fichier source \c gtktetris.c.
+ *
+ * \include gtktetris-1.c
+ *
+ * Pour compiler \c tetris.c et \c gtktetris.c dans le même programme,
+ * on utilise maintenant le \c makefile suivant. On note qu'il nous
+ * permettra de compiler notre programme avec l'interface graphique
+ * GTK, même si pour l'instant on ne s'en sert pas.
+ *
+ * \include makefile-2
+ *
+ * Vérifier maintenant que la compilation fonctionne. Tapez maintenant
+ * \c make dans votre terminal. Il devrait afficher quelque chose
+ * ressemblant à ci-dessous. Vous pouvez vérifier que le programme \c
+ * gtktetris a bien été compilé. Si vous l'exécutez, cela affiche la
+ * grille sur le terminal, comme d'habitude.
+ *
+ \code
+ $ make
+gcc -c -g -Wall -pedantic -std=c99 -g -I/opt/local/include/gtk-2.0 -I/opt/local/lib/gtk-2.0/include -I/opt/local/include/atk-1.0 -I/opt/local/include/cairo -I/opt/local/include/pango-1.0 -I/opt/local/include -I/opt/local/include/glib-2.0 -I/opt/local/lib/glib-2.0/include -I/opt/local/include/pixman-1 -I/opt/local/include/freetype2 -I/opt/local/include/libpng12   gtktetris.c
+gcc -c -g -Wall -pedantic -std=c99 tetris.c
+gcc -L/opt/local/lib -lgtk-x11-2.0 -lgdk-x11-2.0 -latk-1.0 -lgdk_pixbuf-2.0 -lpangocairo-1.0 -lgio-2.0 -lXinerama -lXi -lXrandr -lXcursor -lXcomposite -lXdamage -lpangoft2-1.0 -lXext -lXfixes -lcairo -lpixman-1 -lpng12 -lXrender -lX11 -lXau -lXdmcp -lpango-1.0 -lm -lfontconfig -lexpat -lfreetype -lz -lgobject-2.0 -lgmodule-2.0 -lglib-2.0 -lintl -liconv   gtktetris.o tetris.o -o gtktetris
+ \endcode
+ *
+ * La compilation est plus complexe car GTK utilise beaucoup de
+ * bibliothèques différentes (X, mais cairo, pango, gdk, Xi, Xext,
+ * ...). Mais tout ceci se fait tout seul.
+ *
+ * \section TP3-fenetre 3 - L'interface GTK
+ *
+ * Pour créer une interface graphique, GTK propose un système
+ * classique à base de composants. On dispose du type générique
+ * GtkWidget pour les désigner. La fenêtre (GtkWindow) est le
+ * composant dans lequel on place les autres. Certains composants
+ * peuvent contenir d'autres composants, on les appelle des conteneurs
+ * (GtkWindow est un conteneur ne contenant pas plus d'un composant,
+ * le GtkBox est un conteneur permettant de stocker autant d'autres
+ * composants que l'on souhaite). On dispose de plus de beaucoup de
+ * composants classiques pour les IHM : boutons, menus, checkbox,
+ * roulettes, zones de dessin, onglets, etc.
+ *
+ * Ensuite, on associe à ces composants des \e réactions à certains
+ * événements. On pourra ainsi spécifier que la fonction \c quitter
+ * sera appelée lorsqu'on clique sur un bouton.
+ *
+ * Une fois ces composants créés puis assemblés dans le bon ordre, on
+ * peut lancer l'application en donnant la main à GTK (appel de \c
+ * gtk_main_loop). Ce sera GTK qui appelera automatiquement nos \e
+ * réactions selon les événements induits par le comportement de
+ * l'utilisateur. On parle de \b programmation \b événementielle.
+ *
+ * \subsection TP3-debut 3.1 - Première fenêtre
+ *
+ * Voilà un programme minimaliste pour créer une fenêtre GTK.
+ *
+ * \include gtktetris-2.c
+ *
+ * On note qu'il faut un pointeur (de type \c GtkWidget*) pour pointer
+ * vers les composants créer. Chaque composant est créé avec une
+ * fonction de la forme \c gtk_xxxx_new( ... ), où xxxx désigne le
+ * type de composant voulu. Enfin, on doit appeler la fonction \c
+ * gtk_widget_show sur chaque composant créé pour le rendre
+ * visible. De la même façon, vous pouvez rendre invisible tout
+ * composant (et les composants qu'il contient) en appelant la
+ * fonction \c gtk_widget_hide.
+ *
+ * Une fois tout en place, on appelle la boucle d'attente d'événements
+ * de GTK avec \c gtk_main_loop. Compilez et exécutez ce code. Notez
+ * qu'il faut interrompre le programme car rien n'est prévu pour
+ * quitter la boucle.
+ *
+ * \subsection TP3-bouton 3.2 - Premier bouton et réaction
+ *
+ * On va créer un bouton (cliquable) avec \c
+ * gtk_button_new_with_label. Rajouter les lignes suivantes dans votre
+ * programme \b avant l'appel au \c gtk_main_loop.
+ *
+ \code
+   GtkWidget* button_quit;
+   // Crée le bouton.
+   button_quit = gtk_button_new_with_label ( "Quit" );
+   // Connecte la réaction gtk_main_quit à l'événement "clic" sur ce bouton.
+   g_signal_connect( button_quit, "clicked",
+                     G_CALLBACK( gtk_main_quit ),
+		     NULL);
+   // Rajoute le bouton dans le conteneur window.
+   gtk_container_add( GTK_CONTAINER( window ), button_quit );
+   // Rend visible le bouton.
+   gtk_widget_show( button_quit );
+   // ... la suite
+ \endcode
+ *
+ * Vous avez maintenant une fenêtre composée d'un seul bouton. Si vous
+ * cliquez dessus, le programme se termine.
+ *
+ * \image html gtktetris-3_2.png
+ *
+ * \subsection TP3-boutons 3.3 - Boîte pour mettre plusieurs composants
+ *
+ * Comme une fenêtre ne contient qu'un composant au maximum, on place
+ * un autre composant (la boîte) dans la fenêtre et c'est dans cette
+ * boîte qu'on mettra plusieurs composants.
+ *
+ * Les boîtes permettent de ranger des composants, mais ne rajoutent
+ * pas de décor autour des composants. Elles servent à mettre en page
+ * votre IHM. Il y a les boîtes horizontales (créée avec \c
+ * gtk_hbox_new) pour placer les composants horizontalement et les
+ * boîtes verticales (créée avec \c gtk_vbox_new) pour placer les
+ * composants en diagonal (je plaisante).
+ *
+ \code
+ // FALSE: les composants internes n'auront pas forcément la même largeur. 
+ // TRUE: les composants internes auront forcément la même largeur. 
+ // 10: bords autour des composants.
+ GtkWidget* hbox1 = gtk_hbox_new (TRUE, 10);
+ // Crée un label
+ GtkWidget* label = gtk_label_new( "Grille TETRIS" );
+ gtk_container_add ( GTK_CONTAINER (hbox1), label );
+ \endcode
+ *
+ * Ajouter maintenant aussi le bouton \c button_quit dans la boîte \c
+ * hbox1, ajouter la boîte dans la fenêtre \c window. N'oubliez pas de
+ * rendre visible tous les composants !
+ *
+ * \image html gtktetris-3_3.png
+ * 
+ * \subsection TP3-mise_en_page 3.4 - Mise en page de l'IHM
+ *
+ * On se propose de faire la mise en page suivante pour notre IHM. Il
+ * vous faut créer autant de hbox et vbox nécessaires pour structurer
+ * cette mise en page. On note qu'il y aura des boutons (New, Quit et
+ * les 3 flèches), des labels (Score et Delay) et des labels qu'on va
+ * modifier (la valeur du score et le temps restant). Il y aura enfin
+ * une zone de dessin (GtkDrawingArea).
+ *
+ * \image html gtktetris-3_4.png
+ *
+ * Pour faire un bouton flèche gauche, on écrit les lignes suivantes.
+ *
+ \code
+ GtkWidget *create_arrow_button( GtkArrowType  arrow_type )
+ { // Les boutons sont en fait des conteneurs à un seul élément.
+   GtkWidget* button = gtk_button_new ();
+   GtkWidget* arrow = gtk_arrow_new (arrow_type, GTK_SHADOW_OUT);
+   gtk_container_add (GTK_CONTAINER (button), arrow);
+   return button;
+ }
+ // ...
+ GtkWidget* left = create_arrow_button( GTK_ARROW_LEFT );
+ \endcode
+ * 
+ * La flèche droite est \c GTK_ARROW_RIGHT et celle du bas est \c
+ * GTK_ARROW_DOWN.
+ *
+ * Pour créer une zone de dessin de taille donnée, on fait ainsi.
+ *
+ \code
+ GtkWidget* drawing_area = gtk_drawing_area_new ();
+ // largeur=150 pixels, hauteur = 100 pixels.
+ gtk_widget_set_size_request (drawing_area, 150, 100);
+ \endcode
+ *
+ * Vous définirez une constante TAILLE_CARRE qui vaut 16 et qui donne
+ * la taille de chaque carré de vos pièces de tetris. Il faudra donc
+ * créer une zone de dessin de largeur TAILLE_CARRE*(LARGEUR+4) et de
+ * hauteur TAILLE_CARRE*(HAUTEUR+7), car il faut prévoir la place pour
+ * le décor autour de la grille et pour la pièce qui arrive en haut.
+ *
+ * Pour faire les choses un peu plus proprement, vous créerez une
+ * fonction \c creerIHM() pour créer tous ces composants et les mettre
+ * en page. Pour simplifier, les variables pointant vers les
+ * composants "utiles" pourront être globale au module (fenêtre, zone
+ * de dessin, label pour la valeur du score, label pour la valeur du
+ * delay).
+ *
+ * \subsection TP3-reaction 3.5 - Ajouter une réaction
+ *
+ * On peut écrire ses propres fonctions \e réactions pour les
+ * événements. Par exemple, si on veut que le bouton "gauche" appelle
+ * la fonction \c Gauche lorsqu'il est cliqué, on connecte le
+ * composant à cette fonction grâce à \c g_signal_connect. On note
+ * qu'on peut passer un pointeur en paramètre de plus.
+ *
+ \code
+ gboolean Gauche( GtkWidget *widget, gpointer data )
+ {
+   // Recupère la valeur passée en paramètre.
+   int val1 = * ( (int*) data ); 
+   printf( "Gauche, val=%d\n", val1 ); // affichera 17
+   return TRUE; // Tout s'est bien passé
+ }
+ // ...
+   int val0 = 17;
+   g_signal_connect( button_left, "clicked",
+	             G_CALLBACK( Gauche ), &val0 );
+ \endcode
+ *
+ * Ecrivez des réactions similaires pour les boutons flèches gauche, bas,
+ * droite et "New". On les réécrira plus tard pour nos besoins.  Il est
+ * important de remarquer que dans l'exemple ci-dessus, la valeur affichée
+ * est celle de \c val0 lorsque le bouton sera cliqué, il est donc primordial
+ * que cette variable existe encore à ce moment là. On note que ce mécanisme de
+ * \c réaction est basé sur la notion de pointeur de fonction.
+ *
+ * \subsection TP3-donnees 3.6 - Accès à toutes les données
+ *
+ * Nous allons avoir besoin d'accéder à la partie logique du jeu
+ * (grille tetris ainsi que pièces, score, autres) à partir de
+ * l'IHM. Or, dans les réactions que l'on va associer aux événements,
+ * une seule donnée (un pointeur) est envoyée en même temps. On va
+ * donc se créer un type qui rassemble toutes nos données en un et on
+ * passera l'adresse d'une variable de ce type à toutes nos réactions.
+ *
+ \code
+ typedef struct {
+   Grille g;
+   Piece tab[ NB_PIECES ];
+   int piece; // la piece "en cours" que l'on cherche à placer.
+   int col; // la colonne actuelle pour la pièce que l'on cherche à caser.
+   int score; // le score
+   int delay; // le delay
+   // ... peut-être d'autres choses.
+ } Jeu;
+
+ // ...
+ int main( ... )
+ {
+   Jeu jeu;
+   initialiseGrille( jeu.g );
+   // ...
+   creerIHM( &jeu );
+   // ...
+ }   
+ \endcode
+ *
+ * \section TP3-dessin 4 - Affichage du Tetris dans la zone de dessin.
+ *
+ * On va se servir de Cairo (http://www.cairographics.org/) pour
+ * dessiner notre grille tetris ainsi que les pièces.
+ *
+ * \subsection TP3-expose 4.1 - Realize et expose events 
+ *
+ * Lorsqu'un composant est placé dans une fenêtre affichée à l'écran,
+ * il reçoit des signaux pour lui dire quand se réafficher. Cela
+ * arrive bien sûr la première fois que l'IHM est affichée, mais aussi
+ * par la suite si jamais la fenêtre a subie une occlusion partielle
+ * et doit donc être redessinée. Le composant GtkDrawingArea est par
+ * défaut rempli de gris, c'est tout ! On va donc se connecter aux
+ * signaux "realize" (appelé une seule fois lors du premier affichage)
+ * et "expose" (appelé régulièrement par le serveur de fenêtre) pour
+ * tracer notre tetris. On part donc du squelette suivant.
+ *
+ \code
+ gboolean
+ realize_evt_reaction( GtkWidget *widget, gpointer data )
+ { // force un événement "expose" juste derrière.
+   gtk_widget_queue_draw( widget ); 
+   return TRUE;
+ }
+ // c'est la réaction principale qui va redessiner tout.
+ gboolean
+ expose_evt_reaction( GtkWidget *widget, GdkEventExpose *event, gpointer data )
+ {
+   // c'est la structure qui permet d'afficher dans une zone de dessin
+   // via Cairo 
+   cairo_t* cr = gdk_cairo_create (widget->window);
+   cairo_set_source_rgb (cr, 1, 1, 1); // choisit le blanc.
+   cairo_paint( cr ); // remplit tout dans la couleur choisie.
+
+   cairo_set_source_rgb (cr, 0, 1, 0);
+   cairo_rectangle (cr, 50, 50, 100, 100 );
+   cairo_fill_preserve( cr ); // remplit la forme actuelle (un rectangle)
+
+   cairo_set_line_width(cr, 3);
+   cairo_set_source_rgb (cr, 0, 0.5, 0);
+   cairo_stroke( cr ); // trace la forme actuelle (le même rectangle)
+
+   // On a fini, on peut détruire la structure.
+   cairo_destroy (cr);
+   return TRUE;
+ }
+// ... votre zone de dessin s'appelle ici "drawing_area"
+  g_signal_connect( G_OBJECT(drawing_area), "realize", 
+		    G_CALLBACK(realize_evt_reaction), &jeu );
+  g_signal_connect( G_OBJECT (drawing_area), "expose_event",
+                    G_CALLBACK (expose_evt_reaction), &jeu );
+ \endcode
+ *
+ * Maintenant, vous devriez voir à l'écran ceci lors de l'exécution.
+ * 
+ * \image html gtktetris-4_1.png
+ *
+ * \subsection TP3-grille 4.2 - Dessin de la grille
+ * 
+ * Vous allez maintenant dessiner la grille en faisant un décor qui
+ * remplace les tubes '|' et en affichant un carré de couleur pour les
+ * pièces. Si cela vous amuse, vous pouvez les faire de différentes
+ * couleurs suivant vos choix pour les pièces (genre rouge pour '#',
+ * vert pour '@', etc). Les carrés seront donc de la taille
+ * TAILLE_CARRE * TAILLE_CARRE pixels. Pour plus de commandes sous
+ * cairo, allez voir http://cairographics.org/tutorial .
+ * 
+ * Pour découper votre code, faites les fonctions
+ *
+ \code
+ // Dessine le carré de type c à la ligne et colonne spécifiée dans le
+ // contexte graphique cr.
+ void dessineCarre( cairo_t* cr, int ligne, int colonne, char c );
+ // Dessine toute la grille g dans le contexte graphique cr.
+ void dessineGrille( cairo_t* cr, Grille g );
+ // ....
+ \endcode
+ *
+ * On note qu'on récupère le pointeur vers le jeu dans la fonction \c
+ * expose_evt_reaction en convertissant le pointeur \c data ainsi:
+ \code
+ Jeu* jeu = (Jeu*) data;
+ // La grille est alors jeu->g
+ \endcode
+ *
+ * Voilà un petit snapshot du jeu maintenant.
+ *
+ * \image html gtktetris-4_2.png
+ *
+ * \subsection TP3-affichepiece 4.3 - Affichage de la pièce en attente
+ *
+ * On voit que, dans la structure Jeu, on mémorise la pièce courante
+ * ainsi que sa colonne courante. On va faire une fonction qui met à
+ * jour une structure Jeu en choisissant aléatoirement une nouvelle
+ * pièce courante et la place arbitrairement dans la colonne
+ * (LARGEUR-piece.largeur)/2. Appelons-là \c nouvellePiece.
+ *
+ * Ecrivez ensuite la fonction \c dessinePiece( cairo_t* cr, Jeu* jeu
+ * ) qui l'affiche.
+ *
+ * \image html gtktetris-4_3.png
+ *
+ * \subsection TP3-deplacepiece 4.4 - Déplacement de la pièce
+ *
+ * On peut maintenant écrire proprement les \e réactions \c Gauche et
+ * \c Droite. Elles doivent recevoir la donnée \c jeu aussi. Ensuite,
+ * leur seul rôle est de changer la colonne courante de la pièce, en
+ * la bloquant sur les bords. Il faut ensuite redessiner la \b zone_de_dessin. On procède alors de la même manière que dans \c realize_evt_reaction, c'est-à-dire avec la commande
+ * \code
+ * gtk_widget_queue_draw( window ); // nb: drawing_area suffit
+ * \endcode
+ *
+ * 
+ * Chaque clic sur les flèches gauche ou droite doit maintenant
+ * réafficher votre pièce déplacée dans la bonne direction.
+ *
+ * \subsection TP3-placepiece 4.5 - Placement de la pièce
+ *
+ * Il ne vous reste plus qu'à écrire la réaction au clic sur la flèche
+ * vers le bas, qui ne fait qu'appeler vos fonctions écrites dans le
+ * TP précédent (\c hauteurMax et \c ecrirePiece).
+ *
+ * N'oubliez pas de rappeler ensuite \c nouvellePiece puis d'invalider
+ * la zone de dessin pour qu'elle soit réaffichée. Il faudrait aussi
+ * détecter les lignes complètes et les enlever.
+ *
+ * Vous avez maintenant le même jeu de tetris qu'en mode texte !
+ *
+ * \section TP3-timer 5 - Un peu d'action
+ *
+ * En général, le tetris donne un temps limité pour chaque pièce,
+ * sinon la pièce est placée pour vous (en fait elle descend d'un cran
+ * de plus en plus rapidement). On va faire quelque chose de
+ * similaire. On va juste laisser un temps à l'utilisateur au bout
+ * duquel, si l'utilisateur n'a pas appuyer sur la flèche bas, le jeu
+ * fait comme si vous avez appuyé sur la flèche vers le bas.
+ * 
+ * \subsection TP3-reaction_timeout 5.1 - Réaction pour un time out
+ *
+ * Il existe une façon très simple en GTK pour appeler une fonction
+ * spécifiée au bout d'un certain délai. Par exemple la fonction \c
+ * tic ci-dessous sera appelée toutes les 20ms, et recevra à chaque
+ * fois le pointeur vers le jeu.
+ *
+ \code
+ gint tic( gpointer data )
+ {
+   Jeu* jeu = (Jeu*) data;
+   printf( "tic\n" );
+   g_timeout_add (20, tic, (gpointer) jeu ); // réenclenche le timer.
+   return 0;
+ }
+ // ...
+ // enclenche le timer pour se déclencher dans 20ms.
+ g_timeout_add (20, tic, (gpointer) jeu );
+ \endcode
+ *
+ * Pour simplifier, on va supposer que le label pour le délai a été
+ * placé dans une variable globale du genre
+ *
+ \code
+ GtkWidget* valeur_delai;
+ \endcode
+ *
+ * En utilisant \c gtk_label_set_text( \c GTK_LABEL( \c valeur_delai ), \c str
+ * ), vous remplacez le texte stocké dans ce label par le contenu de la chaine
+ * de caractère \c str. On va donc stocker le délai courant dans la structure
+ * Jeu ainsi que le délai maximum redonné à chaque fois. Votre fonction \c tic
+ * doit décrémenté ce compteur délai et l'afficher. Lorsqu'il arrive à zéro, la
+ * réaction \c Bas doit être appelée et le compteur réinitialisé au délai
+ * maximum. Eventuellement, vous pouvez vous amuser à diminuer prgressivement
+ * le délai maximum, avec le même timer ou un autre timer.
+ *
+ * \image html gtktetris-5_1.png
+ *
+ * \subsection TP3-jeu_complet 5.2 - Jeu complet
+ *
+ * Il ne reste plus (!) qu'à fignoler le jeu. On peut mettre un
+ * booléen qui indique si une partie est en cours ou non. Cela permet
+ * de lancer un nouveau Jeu lorsqu'on clique sur New et de bloquer la
+ * partie lorsque le placement de la pièce dépasse le haut de la
+ * grille.
+ *
+ * On peut changer le score à chaque pièce placée, ainsi qu'à chaque
+ * fois qu'on fait des lignes. 
+ *
+ * \section TP2-divers 6 - Remise du tp
+ *
+ * - Ce TP peut être fait par binôme. 
+ *
+ * - Vous nous enverrez par email votre TP avant le \b dimanche \b 8
+ *   \b novembre \b minuit (email à votre responsable TP). Ce mail
+ *   devra contenir une archive nommée TP2-[votre ou vos nom(s)]
+ *   contenant tous les fichiers sources, entêtes, makefile. Vous
+ *   rajouterez un petit texte précisant l'état d'avancement (ce qui
+ *   marche, ce qui marche à moitié, et ce qui ne marche pas).
+ *
+ * - Bien entendu, il faut que vos programmes compilent sous Linux.
+ *
+ */
+
